@@ -1,0 +1,22 @@
+{
+  "name": "glorya",
+  "description": "Make on-brand image ads, video ads, landing pages and websites with Glorya. Adds the Glorya connector and a skill that runs jobs end to end.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Glorya",
+    "url": "https://glorya.ai"
+  },
+  "homepage": "https://glorya.ai/docs/mcp",
+  "repository": "https://github.com/Glorya-AI/skills",
+  "license": "MIT",
+  "keywords": [
+    "marketing",
+    "ads",
+    "video",
+    "landing-page",
+    "website",
+    "mcp"
+  ],
+  "privacyPolicyUrl": "https://glorya.ai/datenschutz",
+  "icon": ".claude-plugin/icon.png"
+}

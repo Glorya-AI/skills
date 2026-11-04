@@ -1,0 +1,15 @@
+{
+  "name": "glorya",
+  "description": "Glorya for Claude Code: make on-brand ads, videos, landing pages and websites from your terminal.",
+  "owner": {
+    "name": "Glorya",
+    "url": "https://glorya.ai"
+  },
+  "plugins": [
+    {
+      "name": "glorya",
+      "source": "./",
+      "description": "Connect Glorya and make image ads, video ads, landing pages and websites for your brand."
+    }
+  ]
+}

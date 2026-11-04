@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "glorya": {
+      "type": "http",
+      "url": "https://platform.glorya.ai/mcp"
+    }
+  }
+}
