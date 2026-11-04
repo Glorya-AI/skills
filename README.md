@@ -2,8 +2,6 @@
 
 Make on-brand image ads, video ads, landing pages and websites from Claude Code, Cursor, Codex or any MCP app. Glorya already knows your brand. You say what you want; it does the work and hands you the links.
 
-[![skills.sh](https://skills.sh/b/Glorya-AI/skills)](https://skills.sh/Glorya-AI/skills)
-
 ## What you get
 
 - **Image ads** for your brand, ready for feed and story placements.
@@ -29,6 +27,8 @@ Then run `/mcp`, pick **glorya**, choose **Authenticate**, sign in with your Glo
 ```
 npx skills add Glorya-AI/skills
 ```
+
+Also listed on [skills.sh](https://skills.sh/glorya-ai/skills/glorya).
 
 Then connect the Glorya MCP server in your app: `https://platform.glorya.ai/mcp`.
 
