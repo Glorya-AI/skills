@@ -1,6 +1,6 @@
 # Glorya for AI agents
 
-Make on-brand image ads, video ads, landing pages and websites from Claude Code, Cursor, Codex or any MCP app. Glorya already knows your brand. You say what you want; it does the work and hands you the links.
+Make on-brand image ads, video ads, landing pages and websites, and launch ad campaigns, from Claude Code, Cursor, Codex or any MCP app. Glorya already knows your brand. You say what you want; it does the work and hands you the links.
 
 ## What you get
 

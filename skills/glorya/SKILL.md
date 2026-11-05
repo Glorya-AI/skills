@@ -1,19 +1,20 @@
 ---
 name: glorya
-description: Make on-brand image ads, video ads, landing pages and websites with the Glorya connector. Use it whenever the user asks for an ad, a video ad, a landing page or a website for their brand, or mentions Glorya.
+description: Make on-brand image ads, video ads, landing pages and websites, and launch ad campaigns, with the Glorya connector. Use it whenever the user asks for an ad, a video ad, a landing page, a website or an ad campaign for their brand, or mentions Glorya.
 ---
 
 # Glorya
 
-Glorya is an AI marketing agent. It already knows the user's brand: logo, colors, fonts, products and language. You start the work, follow it and share the results. Glorya finishes on its own unless the user asks to review.
+Glorya is an AI marketing agent. It makes ads and pages and launches ad campaigns, and it already knows the user's brand: logo, colors, fonts, products and language. You start the work, follow it and share the results. Glorya finishes on its own unless the user asks to review.
 
 Every tool, input, status, error and limit is in [references/tools.md](references/tools.md).
 
 ## When to use
 
-- The user asks for an image ad, a video ad, a landing page or a website.
+- The user asks for an image ad, a video ad, a landing page, a website or an ad campaign.
 - The user wants to change, publish or stop something Glorya made.
-- The user asks about their recent Glorya images and videos (`list_assets`), the video styles (`list_video_formats`) or their brand and products (`get_brand`).
+- The user asks about their recent Glorya images and videos (`list_assets`), their landing pages and websites (`list_sites`), their campaigns (`list_campaigns`), the video styles (`list_video_formats`) or their brand and products (`get_brand`).
+- The user asks about their credits or plan (`get_credits`), or which ad platforms are connected (`get_integrations`).
 
 ## Connect
 
@@ -73,6 +74,22 @@ Changes: call `refine` with the same `job_id` and the user's words as `instructi
 - Start with `create_website`. It builds a site with several pages.
 - Everything else works like the landing page: one possible clarifying question, `site.preview_url`, `refine` for changes, `publish_site` only when the user asks, then `site.live_url`.
 
+## Campaign
+
+- Start right away with `create_campaign` and the user's own words as `brief`.
+- It builds the campaign, makes the ads and launches it with real ad spend, on its own. The ad platform bills the spend to the user's ad account.
+- Set `review: true` only when the user asks to review ("let me review the campaign first"). Glorya then keeps the campaign paused until the user approves the launch.
+- Don't ask for the platform, goal, budget or destination. Set `platform`, `goal`, `daily_budget`, `destination` or `website_url` only when the user gave them. The default budget is 30 a day (TikTok: 50) in the ad account's currency.
+- `integration_required`: the ad platform isn't connected. Share `connect_url`, then try again once the user has connected it.
+- When it's done, share `campaign.manage_url` and `open_url`, and call `list_campaigns` for its live status.
+- `cancel_job` stops the run, but a campaign that's already live keeps running. The user pauses it in Glorya or the ad platform.
+- For how campaigns are doing, call `list_campaigns`.
+
+## Credits
+
+- `get_credits` shows the brand's plan and credit balance. It works even without a plan.
+- `no_credits`: share `billing_url` so the user can top up.
+
 ## When something fails
 
 Tool errors come with a message, a code and sometimes a link. Pass the message and link on. Don't retry in a loop. The full list is in [references/tools.md](references/tools.md).
@@ -80,12 +97,10 @@ Tool errors come with a message, a code and sometimes a link. Pass the message a
 - `plan_required`: share `checkout_url` ($99/month Starter plan). Try again after the user starts it.
 - `setting_up`: the brand is still setting up. Try again in a few minutes.
 - Wrong brand, `workspace_required` or `workspace_not_found`: call `list_workspaces` with `query` set to the brand the user named, then call the tool again with that `id` as `workspace`.
-- `limit_reached`: up to 3 jobs run at once per brand and 30 start per hour per person. Wait for one to finish, or stop an image or video ad with `cancel_job`.
-- `no_credits`: share `billing_url` so the user can top up.
+- `limit_reached`: up to 3 jobs run at once per brand and 30 start per hour per person. Wait for one to finish, or stop an image ad, video ad or campaign job with `cancel_job`.
 
 ## Never
 
-- Launch or change ad campaigns. Glorya can't do that from here. Point the user to https://platform.glorya.ai
 - Publish a page or site without an explicit ask.
 
 ## Examples
@@ -93,5 +108,7 @@ Tool errors come with a message, a code and sometimes a link. Pass the message a
 - "Make an image ad for our summer sale" → `create_image_ad` with that sentence as `brief`.
 - "UGC video ad for the new serum, and let me review the script" → `list_video_formats`, then `create_video_ad` with the UGC `id` as `format` and `review: true`.
 - "Landing page for my other brand, Lumi Coffee" → `list_workspaces` with `query: "Lumi Coffee"`, then `create_landing_page` with that `id` as `workspace`.
+- "Run a Meta lead campaign at 20 a day" → `create_campaign` with that sentence as `brief`, `platform: "meta"`, `goal: "leads"` and `daily_budget: 20`.
+- "How are my campaigns doing?" → `list_campaigns`.
 - "Make the background darker" → `refine` on the last job.
 - "Publish it" → `publish_site`, then share `site.live_url`.
