@@ -6,14 +6,14 @@ The complete Glorya MCP contract: how to connect, every tool with its inputs and
 
 - Endpoint: `https://platform.glorya.ai/mcp`, streamable HTTP.
 - Sign-in: OAuth 2.1 with the user's Glorya account. Discovery starts at `https://platform.glorya.ai/.well-known/oauth-protected-resource/mcp`, which names the authorization server `https://platform.glorya.ai/api/auth`. It supports dynamic client registration, client ID metadata documents and PKCE. Send the access token as `Authorization: Bearer <token>`.
-- On sign-in the user picks a default brand. Every tool uses it unless you pass `workspace`.
+- On sign-in the user picks a default brand. To switch for the conversation, resolve a unique brand with `list_workspaces` and pass its `workspace` on every later brand-specific call. Disambiguate duplicate names. Existing jobs stay bound to their `job_id`.
 - Every tool except `get_credits` needs an active Glorya plan on the brand's organization. Work that makes something uses Glorya credits, the same as in the platform. A campaign's ad spend is billed by the ad platform to the user's ad account.
 
 ## Read tools
 
 ### `list_workspaces`
 
-Finds the account's brands by name, default brand first. Call it only when the user names a brand other than the default.
+Finds the account's brands by name, default brand first. Use it to resolve or change the conversation’s selected brand.
 
 Annotations: read-only.
 
@@ -22,7 +22,7 @@ Annotations: read-only.
 | `query` | string, 1 to 100 characters | optional | none | Part of the brand name the user said. Case and accents don't matter. |
 | `limit` | integer, 1 to 50 | optional | `20` | How many brands to return. |
 
-Returns `workspaces` (each with `id`, `name`, `role` `member` or `viewer`, `ready`, `detail`, `is_default`) and a `note` that says when more brands match.
+Returns `workspaces` (each with `id`, `name`, `role` `member` or `viewer`, `ready`, `detail`, `is_default`, `organization_id`, `workspace_name`) and a `note` that says when more brands match.
 
 ### `get_brand`
 
@@ -32,7 +32,7 @@ Annotations: read-only.
 
 | Input | Type | Required | Default | Notes |
 | --- | --- | --- | --- | --- |
-| `workspace` | string, 1 to 200 characters | optional | none | A brand `id` from `list_workspaces`. Empty means the default brand. |
+| `workspace` | string, 1 to 200 characters | optional | none | A brand `id` from `list_workspaces`. Omitted uses the connection default; after switching, keep passing the selected brand ID. |
 
 Returns `workspace_id`, `brand` (`name`, `description`, `website_url`, `language`, `colors`, `fonts`, `logo_url`) and `products` (each with `id`, `name`, `description`, `key_features`, `price_range`, `primary_cta`, `image_urls`).
 
@@ -44,7 +44,7 @@ Annotations: read-only.
 
 | Input | Type | Required | Default | Notes |
 | --- | --- | --- | --- | --- |
-| `workspace` | string, 1 to 200 characters | optional | none | A brand `id` from `list_workspaces`. Empty means the default brand. |
+| `workspace` | string, 1 to 200 characters | optional | none | A brand `id` from `list_workspaces`. Omitted uses the connection default; after switching, keep passing the selected brand ID. |
 
 Returns `workspace_id`, `plan` (`name` or null, `status` `none`, `active`, `trialing` or `canceled`, `renews_at`, `trial_ends_at`, `cancel_at_period_end`), `credits` (`total`, `subscription`, `topup`, `free`), `billing_url` and `checkout_url` (set only when there is no active plan: the $99/month Starter checkout).
 
@@ -56,13 +56,13 @@ Annotations: read-only.
 
 | Input | Type | Required | Default | Notes |
 | --- | --- | --- | --- | --- |
-| `workspace` | string, 1 to 200 characters | optional | none | A brand `id` from `list_workspaces`. Empty means the default brand. |
+| `workspace` | string, 1 to 200 characters | optional | none | A brand `id` from `list_workspaces`. Omitted uses the connection default; after switching, keep passing the selected brand ID. |
 
 Returns `workspace_id` and `ad_platforms` (each with `platform` `meta`, `google_ads` or `tiktok`, `connected`, `account` (`id`, `name`, `currency`) or null, and `connect_url`, the page in Glorya to connect it).
 
 ### `list_video_formats`
 
-The video styles Glorya can make, with preview clips. Call it when the user asks which styles exist, or to find the `id` of a style the user named.
+Every supported video style, including Launch Video. Preview fields are empty strings when no catalog clip exists; selecting the style still locks the format. Call it when the user asks which styles exist, or to find the `id` of a style the user named.
 
 Annotations: read-only.
 
@@ -91,7 +91,7 @@ Annotations: read-only.
 
 | Input | Type | Required | Default | Notes |
 | --- | --- | --- | --- | --- |
-| `workspace` | string, 1 to 200 characters | optional | none | A brand `id` from `list_workspaces`. Empty means the default brand. |
+| `workspace` | string, 1 to 200 characters | optional | none | A brand `id` from `list_workspaces`. Omitted uses the connection default; after switching, keep passing the selected brand ID. |
 | `type` | string | optional | `"all"` | One of `image`, `video`, `all`. |
 | `limit` | integer, 1 to 20 | optional | `10` | How many assets to return. |
 
@@ -105,7 +105,7 @@ Annotations: read-only.
 
 | Input | Type | Required | Default | Notes |
 | --- | --- | --- | --- | --- |
-| `workspace` | string, 1 to 200 characters | optional | none | A brand `id` from `list_workspaces`. Empty means the default brand. |
+| `workspace` | string, 1 to 200 characters | optional | none | A brand `id` from `list_workspaces`. Omitted uses the connection default; after switching, keep passing the selected brand ID. |
 | `kind` | string | optional | `"all"` | One of `landing_page`, `website`, `all`. |
 | `limit` | integer, 1 to 20 | optional | `10` | How many sites to return. |
 
@@ -119,13 +119,27 @@ Annotations: read-only.
 
 | Input | Type | Required | Default | Notes |
 | --- | --- | --- | --- | --- |
-| `workspace` | string, 1 to 200 characters | optional | none | A brand `id` from `list_workspaces`. Empty means the default brand. |
+| `workspace` | string, 1 to 200 characters | optional | none | A brand `id` from `list_workspaces`. Omitted uses the connection default; after switching, keep passing the selected brand ID. |
 | `platform` | string | optional | `"all"` | One of `meta`, `google_ads`, `tiktok`, `all`. |
 | `status` | string | optional | `"all"` | One of `active`, `paused`, `all`. |
 | `days` | integer, 7 or 30 | optional | `30` | Spend and results over the last `7` or `30` days. |
 | `limit` | integer, 1 to 20 | optional | `10` | How many campaigns to return. |
 
 Returns `workspace_id`, `range` (`days`, `since`, `until`) and `campaigns`, highest spend first (each with `platform`, `id`, `name`, `status`, `objective`, `daily_budget`, `currency`, `spend`, `impressions`, `clicks`, `results`, `cost_per_result`, `open_url`).
+
+### `list_jobs`
+
+Recover the selected brand's MCP jobs, newest activity first. Call `get_job` for current status. Existing jobs keep their original brand.
+
+Annotations: read-only.
+
+| Input | Type | Required | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `workspace` | string, 1 to 200 characters | optional | none | Selected brand id. |
+| `limit` | integer, 1 to 20 | optional | `10` | Page size. |
+| `cursor` | string, 1 to 1000 characters | optional | none | Opaque `next_cursor` from the previous page. |
+
+Returns `workspace_id`, `jobs` (job_id, kind, title, workspace_id, created_at, updated_at, open_url), `next_cursor` or null, and up to 20 `pending_starts` for this user and OAuth client (request_id, idempotency_key, job_id if known, tool, created_at). An unconfirmed start is not permission to start a replacement. Reuse its original key and inputs.
 
 ## Create tools
 
@@ -140,7 +154,8 @@ Annotations: writes, not destructive.
 | Input | Type | Required | Default | Notes |
 | --- | --- | --- | --- | --- |
 | `brief` | string, 1 to 4,000 characters | required | none | The user's own words. With no details, pass what they asked for, such as "Create an image ad". |
-| `workspace` | string, 1 to 200 characters | optional | none | Set only when the user named another brand. |
+| `idempotency_key` | string, 1 to 200 characters | optional | none | Generate once per request; reuse on retries. Different inputs with the same key are rejected. |
+| `workspace` | string, 1 to 200 characters | optional | none | Pass the conversation’s selected brand ID on every brand-specific call. |
 | `references` | array of https URLs, up to 8 | optional | `[]` | Only links the user gave. See the reference limits below. |
 | `language` | string, two lowercase letters | optional | none | ISO 639-1, such as `en` or `de`. Only when the user said it; the brand's language is used otherwise. |
 | `review` | boolean | optional | `false` | Glorya finishes on its own. Set `true` only when the user asks to review or approve steps ("let me review", "show me the concept first"); Glorya then stops for approval at the same steps as in the platform. Never ask the user about it. |
@@ -154,7 +169,8 @@ Annotations: writes, not destructive.
 | Input | Type | Required | Default | Notes |
 | --- | --- | --- | --- | --- |
 | `brief` | string, 1 to 4,000 characters | required | none | The user's own words. |
-| `workspace` | string, 1 to 200 characters | optional | none | Set only when the user named another brand. |
+| `idempotency_key` | string, 1 to 200 characters | optional | none | Generate once per request; reuse on retries. Different inputs with the same key are rejected. |
+| `workspace` | string, 1 to 200 characters | optional | none | Pass the conversation’s selected brand ID on every brand-specific call. |
 | `references` | array of https URLs, up to 8 | optional | `[]` | Only links the user gave. |
 | `language` | string, two lowercase letters | optional | none | Only when the user said it. |
 | `review` | boolean | optional | `false` | Glorya finishes on its own. Set `true` only when the user asks to review or approve steps; Glorya then stops at the format, script, start frames and final cut. Never ask the user about it. |
@@ -169,7 +185,8 @@ Annotations: writes, not destructive.
 | Input | Type | Required | Default | Notes |
 | --- | --- | --- | --- | --- |
 | `brief` | string, 1 to 4,000 characters | required | none | The user's own words. |
-| `workspace` | string, 1 to 200 characters | optional | none | Set only when the user named another brand. |
+| `idempotency_key` | string, 1 to 200 characters | optional | none | Generate once per request; reuse on retries. Different inputs with the same key are rejected. |
+| `workspace` | string, 1 to 200 characters | optional | none | Pass the conversation’s selected brand ID on every brand-specific call. |
 | `references` | array of https URLs, up to 8 | optional | `[]` | Only links the user gave. |
 | `language` | string, two lowercase letters | optional | none | Only when the user said it. |
 
@@ -182,7 +199,8 @@ Annotations: writes, not destructive.
 | Input | Type | Required | Default | Notes |
 | --- | --- | --- | --- | --- |
 | `brief` | string, 1 to 4,000 characters | required | none | The user's own words. |
-| `workspace` | string, 1 to 200 characters | optional | none | Set only when the user named another brand. |
+| `idempotency_key` | string, 1 to 200 characters | optional | none | Generate once per request; reuse on retries. Different inputs with the same key are rejected. |
+| `workspace` | string, 1 to 200 characters | optional | none | Pass the conversation’s selected brand ID on every brand-specific call. |
 | `references` | array of https URLs, up to 8 | optional | `[]` | Only links the user gave. |
 | `language` | string, two lowercase letters | optional | none | Only when the user said it. |
 
@@ -195,7 +213,8 @@ Annotations: destructive, open world.
 | Input | Type | Required | Default | Notes |
 | --- | --- | --- | --- | --- |
 | `brief` | string, 1 to 4,000 characters | required | none | The user's own words, such as "Get leads for our free trial". |
-| `workspace` | string, 1 to 200 characters | optional | none | Set only when the user named another brand. |
+| `idempotency_key` | string, 1 to 200 characters | optional | none | Generate once per request; reuse on retries. Different inputs with the same key are rejected. |
+| `workspace` | string, 1 to 200 characters | optional | none | Pass the conversation’s selected brand ID on every brand-specific call. |
 | `platform` | string | optional | none | One of `meta`, `google_ads`, `tiktok`. Only when the user named one. Empty means the first connected platform in that order. |
 | `goal` | string | optional | none | One of `leads`, `applicants`, `buyers`. Only when the user said it. Empty means Glorya recommends one. |
 | `daily_budget` | integer | optional | none | In the ad account's currency. Only when the user gave one. Empty means 30 (TikTok: 50, its minimum). Meta and Google Ads take 10 to 500, TikTok 50 to 500. |
@@ -233,7 +252,7 @@ Annotations: writes, not destructive.
 | --- | --- | --- | --- | --- |
 | `job_id` | string, 1 to 200 characters | required | none | The job to change. |
 | `instruction` | string, 1 to 4,000 characters | required | none | What to change, in the user's words. |
-| `review` | boolean | optional | `false` | Image ads, video ads and campaigns only. Glorya finishes on its own. Set `true` only when the user asks to review or approve steps. Never ask the user about it. |
+| `review` | boolean | optional | `false` | Image ads, video ads and campaigns only. Leave it out to keep the job's own choice: a job created with `review: true` stays in review. Set `true` only when the user asks to review or approve steps. Never ask the user about it. |
 
 Returns the same fields as a create tool. Follow the same `job_id` with `get_job`.
 
@@ -252,7 +271,7 @@ Returns `job_id`, `status` (`publishing`), `open_url` and `next_step`. Then call
 
 ### `cancel_job`
 
-Stops a running image ad, video ad or campaign job and closes its open question. Finished files stay in Glorya. A campaign that's already live keeps running; the user pauses it in Glorya or the ad platform. Landing page and website builds can't be cancelled.
+Stops a running image ad, video ad or campaign job and closes its open question. Finished files stay in Glorya. A campaign that's already live keeps running; pause it with `set_campaign_status` when the user asks. Landing page and website builds can't be cancelled.
 
 Annotations: destructive.
 
@@ -296,7 +315,7 @@ A failed call returns `isError: true` with a message for the user and a JSON obj
 | `invalid_destination` | The destination doesn't fit: `instant_form` is Meta only and not for buyers, `website` needs `website_url`. | Change the destination or pass `website_url`. |
 | `job_not_found` | No job with that id for this account. | Check the `job_id`. |
 | `no_open_question` | The question was answered, expired, or `request_id` is needed. | Call `get_job` for the current questions. |
-| `invalid_answer` | The answer isn't one of the exact choices. | Send one label from `choices`. |
+| `job_changed` | The job changed while the request was on its way. | Call `get_job` for the current state, then try again. |
 | `not_publishable` | Not a site, still building, waiting for an answer, or already publishing. | Wait for `completed`, then publish. |
 | `not_cancellable` | Landing page and website builds can't be cancelled. | Use `refine` to change the result instead. |
 | `upstream_error` | Glorya couldn't do the action. | Tell the user the message. |
@@ -316,3 +335,82 @@ A failed call returns `isError: true` with a message for the user and a JSON obj
 ## Prompts
 
 The server also offers four prompts without arguments: `image-ad`, `video-ad`, `landing-page` and `website` (in Claude Code, `/glorya:image-ad` and so on). Each starts that job right away.
+
+## Recovery after a lost response
+
+Create calls reserve admission durably before dispatch. Reusing an `idempotency_key` with the same tool, brand and inputs returns the same job. `idempotency_conflict` means the key was reused for different work. `creation_pending` or `creation_uncertain` means a start may already have been accepted: never start a replacement with a new key. Keep `request_id` and any `job_id`, check that job, or recover it with `list_jobs`. Uncertain requests are not automatically dispatched a second time. Limits serialize admission per user and organization.
+
+`creation_rejected` means the original start failed before job dispatch (for example, an invalid reference). It releases its concurrent slot. Correct the inputs and use a new key. A recorded campaign activation failure remains a failed job even when the preparation draft is ready; check existing campaigns before attempting replacement work.
+
+## Existing sites and campaigns
+
+### `get_site`
+
+Read any accessible site from `list_sites`, including platform-created sites. Read `clarification` and relay it to the user; answer with `edit_site`.
+
+Annotations: read-only.
+
+| Input | Type | Required | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `workspace` | string, 1 to 200 characters | optional | none | Selected brand id. |
+| `site_id` | string, 1 to 200 characters | required | none | Site id from `list_sites`. |
+
+Returns site_id, workspace_id, kind, name, status, publish_status, preview_url, live_url, error, updated_at, open_url, and clarification (question and choices) or null. A live URL from an earlier publication is not proof a new publication succeeded; check publish_status.
+
+### `edit_site`
+
+Edit an existing landing page or webapp, or answer its clarification. Uses credits (minimum balance 100); poll `get_site`. Legacy sites use their editor link.
+
+Annotations: write.
+
+| Input | Type | Required | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `workspace` | string, 1 to 200 characters | optional | none | Selected brand id. |
+| `site_id` | string, 1 to 200 characters | required | none | Site id from `list_sites`. |
+| `instruction` | string, 1 to 4000 characters | required | none | The user's change or clarification answer. |
+
+Returns site_id, workspace_id, status and next_step. Editing does not publish.
+
+### `publish_existing_site`
+
+Make an existing landing page or webapp public by site id. Only when the user asks. Poll `get_site` until publish_status is terminal; show failures.
+
+Annotations: destructive, write.
+
+| Input | Type | Required | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `workspace` | string, 1 to 200 characters | optional | none | Selected brand id. |
+| `site_id` | string, 1 to 200 characters | required | none | Site id from `list_sites`. |
+| `slug` | string, up to 63 characters | optional | none | Lowercase letters and digits separated by single dashes. |
+
+Returns site_id, workspace_id, status and next_step. Legacy builders remain managed through their editor.
+
+### `get_campaign_report`
+
+Read a selected-account campaign's daily synced performance. Missing data is not zero: check reporting_complete. Meta action types can overlap; do not add different action types into one conversion count.
+
+Annotations: read-only.
+
+| Input | Type | Required | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `workspace` | string, 1 to 200 characters | optional | none | Selected brand id. |
+| `platform` | string | required | none | `meta`, `google_ads`, `tiktok`. |
+| `campaign_id` | string, 1 to 200 characters | required | none | Campaign id from `list_campaigns`. |
+| `days` | integer | optional | `30` | `7`, `30`, `90`; account-calendar days. |
+
+Returns workspace_id, campaign_id, platform, name, status, currency, open_url, range (from, to, timezone), reporting_complete, totals (spend, clicks, impressions, ctr_percent, cpc) or null, daily (date, spend, impressions, clicks, conversions or null, synced_at), actions (date, action, value), and note. Currency amounts are major units. Partial totals cover only returned rows.
+
+### `set_campaign_status`
+
+Pause or resume an existing campaign in the selected brand and ad account. Resuming spends the campaign's current budget. Only use the status the user requested. This is separate from cancelling the MCP job that created it.
+
+Annotations: destructive, write.
+
+| Input | Type | Required | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `workspace` | string, 1 to 200 characters | optional | none | Selected brand id. |
+| `platform` | string | required | none | `meta`, `google_ads`, `tiktok`. |
+| `campaign_id` | string, 1 to 200 characters | required | none | Campaign id from `list_campaigns`. |
+| `status` | string | required | none | `active`, `paused`. |
+
+Returns workspace_id, campaign_id, platform, status and open_url after provider confirmation. If the response is uncertain, inspect the campaign before retrying the same status.
