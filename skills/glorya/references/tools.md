@@ -319,6 +319,9 @@ A failed call returns `isError: true` with a message for the user and a JSON obj
 | `job_changed` | The job changed while the request was on its way. | Call `get_job` for the current state, then try again. |
 | `not_publishable` | Not a site, still building, waiting for an answer, or already publishing. | Wait for `completed`, then publish. |
 | `not_cancellable` | Landing page and website builds can't be cancelled. | Use `refine` to change the result instead. |
+| `campaign_not_found` | The campaign isn't in this brand's selected ad account. | Call `list_campaigns` for the brand's campaigns. |
+| `reporting_unavailable` | The ad account's timezone hasn't synced yet, so days can't be counted. | Try again after the next sync, or share `open_url`. |
+| `invalid_keywords` | `research_keywords` got no seed, a site combined with other seeds, or a market Google Ads doesn't target. | Fix the seeds, or pass a valid `country` and `language`. |
 | `upstream_error` | Glorya couldn't do the action. | Tell the user the message. |
 | `internal_error` | An unexpected error. | Try again in a moment. |
 
@@ -418,7 +421,7 @@ Returns workspace_id, platform, campaign_id, name, status, objective, result_eve
 
 ### `research_keywords`
 
-Google Ads Keyword Planner on the brand's connected Google Ads account: keyword ideas for one market from seed keywords, a page url or a whole site (such as a competitor's domain). Use it before planning a Google Search campaign, or to check the search volume of keywords the user names (pass them as seeds). Read-only: nothing is created or spent.
+Google Ads Keyword Planner on the brand's connected Google Ads account: keyword ideas for one market from seed keywords, a page url or a whole site (such as a competitor's domain). Use it before planning a Google Search campaign, or to size keywords the user names (pass them as seeds; Google usually returns them with their volume). Read-only: nothing is created or spent.
 
 Annotations: read-only.
 
@@ -429,10 +432,10 @@ Annotations: read-only.
 | `url` | http(s) URL | optional | none | A page to mine for ideas, alone or with `keywords`. |
 | `site` | domain such as `example.com` | optional | none | A whole site, such as a competitor's. Use it alone. |
 | `country` | string, two letters | required | none | ISO 3166-1 alpha-2 target country, such as `DE` or `US`. |
-| `language` | string | required | none | Search language: ISO 639-1 such as `de` or `en` (`zh_CN`, `zh_TW`). |
+| `language` | string | required | none | Google Ads language code, usually ISO 639-1 such as `de` or `en` (`zh_CN`, `zh_TW`; Hebrew is `iw`). |
 | `limit` | integer, 1 to 50 | optional | `30` | How many ideas to return. |
 
-Pass at least one of `keywords`, `url` or `site`. Returns workspace_id, ad_account_id, currency, country, language, ideas and note. Each idea has keyword, avg_monthly_searches (12-month average), monthly_searches (month as YYYY-MM, searches; oldest first), competition (`LOW`, `MEDIUM`, `HIGH`, advertiser competition), competition_index (0 to 100), and low_top_of_page_bid and high_top_of_page_bid (20th to 80th percentile bid for the top of the page, in currency). null means Google reported no value. `integration_required` means Google Ads is not connected; share connect_url. `upstream_error` with google_error_codes means Google refused the request.
+Pass at least one of `keywords`, `url` or `site`. Returns workspace_id, ad_account_id, currency, country, language, ideas and note. Each idea has keyword, avg_monthly_searches (12-month average), monthly_searches (month as YYYY-MM, searches; oldest first), competition (`LOW`, `MEDIUM`, `HIGH`, advertiser competition), competition_index (0 to 100), and low_top_of_page_bid and high_top_of_page_bid (20th to 80th percentile bid for the top of the page, in currency). null means Google reported no value. `integration_required` means Google Ads is not connected; share connect_url. `upstream_error` with google_error_codes means Google refused the request; without codes, Keyword Planner did not answer in time.
 
 ### `set_campaign_status`
 
