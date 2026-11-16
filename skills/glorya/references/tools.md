@@ -68,7 +68,7 @@ Annotations: read-only.
 
 No inputs.
 
-Returns `formats` (each with `id`, `name`, `preview_video_url`, `poster_url`).
+Returns `formats` (each with `id`, `name`, `preview_video_url`, `poster_url`, and `templates`: each template's `id`, `name` and `summary`). A template is a direction on its style, such as UGC · In Car.
 
 ### `get_job`
 
@@ -174,7 +174,8 @@ Annotations: writes, not destructive.
 | `references` | array of https URLs, up to 8 | optional | `[]` | Only links the user gave. |
 | `language` | string, two lowercase letters | optional | none | Only when the user said it. |
 | `review` | boolean | optional | `false` | Glorya finishes on its own. Set `true` only when the user asks to review or approve steps; Glorya then stops at the format, script, start frames and final cut. Never ask the user about it. |
-| `format` | string | optional | none | Only when the user named a style. One of `launch_video`, `dont_blink`, `stop_motion`, `mascot_explainer`, `sketch_explainer`, `ugc`, `anime`, `film_noir`, `pixar`, `vox_explainer`, `talking_heads_montage`, `claymation`, `vintage_cartoon`, `stick_figure`, `mannequin`, `fluffy_toy`, `pixel_art`, `podcast`, `high_quality_studio`, `street_interview`, `tv_spot`, `ai_animal`. |
+| `format` | string | optional | none | Only when the user named a style: an `id` from `list_video_formats`. |
+| `variant` | string | optional | none | Only when the user named one of that style's templates: a template `id` from `list_video_formats` (e.g. `ugc__in_car`). Requires `format`. |
 
 ### `create_landing_page`
 
@@ -399,6 +400,39 @@ Annotations: read-only.
 | `days` | integer | optional | `30` | `7`, `30`, `90`; account-calendar days. |
 
 Returns workspace_id, campaign_id, platform, name, status, currency, open_url, range (from, to, timezone), reporting_complete, totals (spend, clicks, impressions, ctr_percent, cpc) or null, daily (date, spend, impressions, clicks, conversions or null, synced_at), actions (date, action, value), and note. Currency amounts are major units. Partial totals cover only returned rows.
+
+### `get_campaign_detail`
+
+Read one selected-account campaign's synced performance by ad set (Meta) or ad group (Google Ads, TikTok; asset groups for Performance Max), by ad, and by Google Ads keyword. Use it when the user asks which ad sets, ads or keywords work, or what to scale, pause or fix. Missing data is not zero: check reporting_complete and null metrics.
+
+Annotations: read-only.
+
+| Input | Type | Required | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `workspace` | string, 1 to 200 characters | optional | none | Selected brand id. |
+| `platform` | string | required | none | `meta`, `google_ads`, `tiktok`. |
+| `campaign_id` | string, 1 to 200 characters | required | none | Campaign id from `list_campaigns`. |
+| `days` | integer | optional | `30` | `7`, `30`, `90`; account-calendar days. |
+
+Returns workspace_id, platform, campaign_id, name, status, objective, result_event, daily_budget, currency, open_url, range (from, to, timezone), reporting_complete, totals, ad_set_count, ad_sets and note. Each ad set has id, name, status, daily_budget, result_event, metrics, ad_count, ads (id, name, status, headlines, texts, landing_url, metrics) and keyword_count, keywords (Google Ads Search: id, text, match_type, status, quality_score, metrics). metrics is spend, impressions, clicks, ctr_percent, cpc, results, cost_per_result and conversion_value (Google Ads), or null when there is no data for the range (not synced, or a keyword with no activity). results counts the objective's result: the Meta result_event (such as LEAD or PURCHASE), Google Ads conversions, or TikTok clicks, reach, video views or conversions. cost_per_result is the cost per lead, purchase or other result; it is null when results is 0 or unknown, so compare spend and results as well. Only the 20 highest-spending ad sets, 30 ads and 50 keywords are listed, sorted by spend; the counts are full totals. status is the platform's own value (for example ACTIVE, ADSET_PAUSED, ENABLED). Currency amounts are major units. `reporting_unavailable` means the ad account's timezone has not synced yet.
+
+### `research_keywords`
+
+Google Ads Keyword Planner on the brand's connected Google Ads account: keyword ideas for one market from seed keywords, a page url or a whole site (such as a competitor's domain). Use it before planning a Google Search campaign, or to check the search volume of keywords the user names (pass them as seeds). Read-only: nothing is created or spent.
+
+Annotations: read-only.
+
+| Input | Type | Required | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `workspace` | string, 1 to 200 characters | optional | none | Selected brand id. |
+| `keywords` | array of strings, up to 20, each 1 to 80 characters | optional | `[]` | Products, services or the user's own keywords. |
+| `url` | http(s) URL | optional | none | A page to mine for ideas, alone or with `keywords`. |
+| `site` | domain such as `example.com` | optional | none | A whole site, such as a competitor's. Use it alone. |
+| `country` | string, two letters | required | none | ISO 3166-1 alpha-2 target country, such as `DE` or `US`. |
+| `language` | string | required | none | Search language: ISO 639-1 such as `de` or `en` (`zh_CN`, `zh_TW`). |
+| `limit` | integer, 1 to 50 | optional | `30` | How many ideas to return. |
+
+Pass at least one of `keywords`, `url` or `site`. Returns workspace_id, ad_account_id, currency, country, language, ideas and note. Each idea has keyword, avg_monthly_searches (12-month average), monthly_searches (month as YYYY-MM, searches; oldest first), competition (`LOW`, `MEDIUM`, `HIGH`, advertiser competition), competition_index (0 to 100), and low_top_of_page_bid and high_top_of_page_bid (20th to 80th percentile bid for the top of the page, in currency). null means Google reported no value. `integration_required` means Google Ads is not connected; share connect_url. `upstream_error` with google_error_codes means Google refused the request.
 
 ### `set_campaign_status`
 

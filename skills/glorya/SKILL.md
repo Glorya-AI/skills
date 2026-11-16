@@ -22,7 +22,8 @@ The tools come from the Glorya MCP server at `https://platform.glorya.ai/mcp` (s
 
 ## Rules
 
-- Use the default brand: leave `workspace` empty. Only when the user names another brand, call `list_workspaces` with `query` set to that name and pass the matching `id` as `workspace`.
+- Use the default brand until the user switches. Resolve their brand uniquely with `list_workspaces` and pass its `id` as `workspace` on every subsequent brand-specific call in this conversation. Disambiguate duplicate names. Existing jobs stay with their `job_id`.
+- Give every create request an `idempotency_key`; reuse it with unchanged inputs after a lost response. Never create a replacement on `creation_pending` or `creation_uncertain`. Keep the returned recovery IDs.
 - Start right away. Pass the user's own words as `brief`. If they gave no details, pass what they asked for, such as "Create an image ad".
 - Ask nothing before you start: not the format, size, language, audience or style. Glorya picks these.
 - Set `language`, `format` or `references` only when the user gave them. `references` are public https links.
@@ -82,8 +83,17 @@ Changes: call `refine` with the same `job_id` and the user's words as `instructi
 - Don't ask for the platform, goal, budget or destination. Set `platform`, `goal`, `daily_budget`, `destination` or `website_url` only when the user gave them. The default budget is 30 a day (TikTok: 50) in the ad account's currency.
 - `integration_required`: the ad platform isn't connected. Share `connect_url`, then try again once the user has connected it.
 - When it's done, share `campaign.manage_url` and `open_url`, and call `list_campaigns` for its live status.
-- `cancel_job` stops the run, but a campaign that's already live keeps running. The user pauses it in Glorya or the ad platform.
-- For how campaigns are doing, call `list_campaigns`.
+- `cancel_job` stops the run, but a campaign that's already live keeps running. Use `set_campaign_status` when the user asks to pause it.
+- For how campaigns are doing, call `list_campaigns`. For which ad sets, ads or keywords work, call `get_campaign_detail`.
+
+## Google keyword research
+
+Work like a search marketer: research, plan, launch, then optimize.
+
+- Research with `research_keywords`. Seed it with the products from `get_brand`, the user's own keywords, or a page `url`; use a competitor's domain as `site` to see what it attracts. Always pass the country and language the ads target.
+- Keep keywords with buying intent and real volume; drop irrelevant, job, free and DIY terms. Check `monthly_searches` for seasonality. `high_top_of_page_bid` times expected daily clicks gives a rough daily budget.
+- Group the keywords by theme (one theme per ad group) and pass the chosen keywords, themes and negatives in the `create_campaign` brief with `platform: "google_ads"`. Glorya builds the ad groups, keywords and ads.
+- After launch, `get_campaign_detail` shows each keyword's spend, quality score and cost per conversion: pause keywords that spend without converting, raise budget on campaigns that convert below target.
 
 ## Credits
 
@@ -110,5 +120,13 @@ Tool errors come with a message, a code and sometimes a link. Pass the message a
 - "Landing page for my other brand, Lumi Coffee" → `list_workspaces` with `query: "Lumi Coffee"`, then `create_landing_page` with that `id` as `workspace`.
 - "Run a Meta lead campaign at 20 a day" → `create_campaign` with that sentence as `brief`, `platform: "meta"`, `goal: "leads"` and `daily_budget: 20`.
 - "How are my campaigns doing?" → `list_campaigns`.
+- "Which ads in my lead campaign should I pause?" → `list_campaigns`, then `get_campaign_detail` for that campaign; compare `spend`, `results` and `cost_per_result` across ads.
+- "Find keywords for our Google Ads in Germany" → `research_keywords` with the product names as `keywords`, `country: "DE"`, `language: "de"`.
 - "Make the background darker" → `refine` on the last job.
 - "Publish it" → `publish_site`, then share `site.live_url`.
+
+## Existing work
+
+- Recover MCP job IDs with `list_jobs` after reconnecting. Use the original idempotency key for uncertain starts, and `get_job` for current outcomes.
+- For a site returned by `list_sites`, call `get_site`, `edit_site` or `publish_existing_site` with its site id and selected workspace. Poll `get_site`; do not treat a platform thread as an MCP job. Publish only when the user asks.
+- For a campaign returned by `list_campaigns`, use `get_campaign_detail` for ad set, ad and keyword performance and `get_campaign_report` for daily results and sync completeness. Use `set_campaign_status` only for an explicit pause or resume request; resuming uses the campaign's existing budget.
