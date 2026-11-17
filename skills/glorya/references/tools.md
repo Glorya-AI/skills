@@ -322,6 +322,9 @@ A failed call returns `isError: true` with a message for the user and a JSON obj
 | `campaign_not_found` | The campaign isn't in this brand's selected ad account. | Call `list_campaigns` for the brand's campaigns. |
 | `reporting_unavailable` | The ad account's timezone hasn't synced yet, so days can't be counted. | Try again after the next sync, or share `open_url`. |
 | `invalid_keywords` | `research_keywords` got no seed, a site combined with other seeds, or a market Google Ads doesn't target. | Fix the seeds, or pass a valid `country` and `language`. |
+| `team_only` | Tasks are for the brand's team; this account is a customer account. | Tell the user. |
+| `assignee_not_found` | No one matches `assignee`, or that person can't be assigned on this brand. | Pick one from `teammates`, or leave `assignee` out. |
+| `assignee_ambiguous` | Several people match `assignee`. | Ask which one from `matches` and pass the email. |
 | `upstream_error` | Glorya couldn't do the action. | Tell the user the message. |
 | `internal_error` | An unexpected error. | Try again in a moment. |
 
@@ -451,3 +454,38 @@ Annotations: destructive, write.
 | `status` | string | required | none | `active`, `paused`. |
 
 Returns workspace_id, campaign_id, platform, status and open_url after provider confirmation. If the response is uncertain, inspect the campaign before retrying the same status.
+
+## Tasks
+
+The brand's Tasks board in Glorya (Workspaces → Tasks). Tasks are for the brand's team; a customer account gets `team_only`.
+
+### `list_tasks`
+
+The brand's tasks, most recent activity first. Cancelled tasks are left out.
+
+Annotations: read-only.
+
+| Input | Type | Required | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `workspace` | string, 1 to 200 characters | optional | none | Selected brand id. |
+| `column` | string | optional | `"all"` | One of `open`, `waiting_for_feedback`, `ready_for_launch`, `done`, `all`. |
+| `limit` | integer, 1 to 50 | optional | `20` | How many tasks to return. |
+
+Returns workspace_id, board_url, counts (open, waiting_for_feedback, ready_for_launch, done: full totals), tasks and note. Each task has task_id, title, column, status (`open`, `agent_working`, `needs_input`, `waiting_for_review`, `approved`, `done`), assignees (each with `name`: the task's assignee, or the brand's owners when nobody is assigned, as on the board), question (the agent's open question) or null, brief (up to 1,000 characters; null for a plain chat session), created_at, last_activity_at and open_url. Up to 50 tasks per call; older ones are on the board (`board_url`).
+
+### `create_task`
+
+Adds a task to the brand's Tasks board, in the Open column, optionally assigned to a teammate. Use it to hand work to a colleague and for anything the other tools can't do, such as a change in Ads Manager, a site fix or a missing integration. It uses no credits and starts nothing: Glorya's agent works on the task only after someone sends a message in it. For work Glorya should do now, use the create tools.
+
+Annotations: write.
+
+| Input | Type | Required | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `workspace` | string, 1 to 200 characters | optional | none | Selected brand id. |
+| `idempotency_key` | string, 1 to 200 characters | optional | none | Generate one per request and reuse it unchanged on a retry: the retry returns the same task. Without it, every call adds a task. |
+| `title` | string, 1 to 160 characters | required | none | A short task name. |
+| `description` | string, up to 10,000 characters | optional | `""` | What needs to be done, with the details the teammate needs. |
+| `assignee` | string, 1 to 200 characters | optional | none | A teammate's email, full name, first name or `me`. Omit to leave it unassigned. |
+
+Only teammates who can work on the brand can be assigned. An email must match exactly; a name matches from the start of each word ("mar" finds Marius). Returns task_id, workspace_id, title, column (`open`), assignee (`name`) or null, open_url, board_url and next_step. `assignee_not_found` lists up to 20 `teammates` (name, email, can_assign) with the full `teammate_count`; `assignee_ambiguous` lists the `matches`: ask the user which one and pass the email.
+
