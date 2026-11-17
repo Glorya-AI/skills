@@ -101,7 +101,7 @@ Work like a search marketer: research, plan, launch, then optimize.
 - `create_task` puts a task on the brand's Tasks board for a teammate. Use it when the user wants to hand something to a colleague ("ask Marius to fix the pixel"), and for anything the other tools can't do: a change in Ads Manager, a site fix, a missing integration. Don't use it for work Glorya can do now; start that with a create tool.
 - Write a clear `title` and put the details in `description`. Pass `assignee` as the name or email the user gave, or `me`. On `assignee_ambiguous`, ask which teammate and pass the email. Give every `create_task` an `idempotency_key` and reuse it on a retry.
 - Glorya's agent doesn't start on its own. Share `open_url` and `board_url`.
-- `list_tasks` shows what's open, waiting for feedback, ready for launch or done, newest activity first. Check it before creating a task the user may already have.
+- `list_tasks` shows what's open, waiting for feedback, ready for launch or done, newest activity first. Filter it like the board: `assignee` for one person's tasks ("what's on Marius's plate"), `brands` or `all_brands: true` across brands, `search` for words. Check it before creating a task the user may already have.
 
 ## Credits
 
@@ -132,6 +132,7 @@ Tool errors come with a message, a code and sometimes a link. Pass the message a
 - "Find keywords for our Google Ads in Germany" → `research_keywords` with the product names as `keywords`, `country: "DE"`, `language: "de"`.
 - "Ask Marius to fix the Meta pixel on the checkout page" → `create_task` with that as `title` and `description`, `assignee: "Marius"`.
 - "What's still open for this brand?" → `list_tasks` with `column: "open"`.
+- "What is Marius working on across all brands?" → `list_tasks` with `assignee: "Marius"` and `all_brands: true`.
 - "Make the background darker" → `refine` on the last job.
 - "Publish it" → `publish_site`, then share `site.live_url`.
 

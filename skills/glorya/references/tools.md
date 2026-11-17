@@ -461,17 +461,21 @@ The brand's Tasks board in Glorya (Workspaces → Tasks). Tasks are for the bran
 
 ### `list_tasks`
 
-The brand's tasks, most recent activity first. Cancelled tasks are left out.
+Tasks on the board, most recent activity first, with the board's filters: by person, by brand and by text. Cancelled tasks are left out.
 
 Annotations: read-only.
 
 | Input | Type | Required | Default | Notes |
 | --- | --- | --- | --- | --- |
-| `workspace` | string, 1 to 200 characters | optional | none | Selected brand id. |
+| `workspace` | string, 1 to 200 characters | optional | none | Selected brand id. Used when `brands` and `all_brands` are not set. |
+| `brands` | array of brand ids, 1 to 50 | optional | none | Several brands from `list_workspaces`, listed together. |
+| `all_brands` | boolean | optional | `false` | `true` lists every brand the user can open whose organization has a plan; `note` says how many brands were left out. |
+| `assignee` | string, 1 to 200 characters | optional | none | Only this person's tasks: a name, an email or `me`. As on the board, a brand's owners also own its unassigned tasks. `unassigned` lists tasks nobody owns. |
+| `search` | string, 1 to 200 characters | optional | none | Text contained in the task title, brand, open question or assignee name: one phrase, like the board's search. |
 | `column` | string | optional | `"all"` | One of `open`, `waiting_for_feedback`, `ready_for_launch`, `done`, `all`. |
 | `limit` | integer, 1 to 50 | optional | `20` | How many tasks to return. |
 
-Returns workspace_id, board_url, counts (open, waiting_for_feedback, ready_for_launch, done: full totals), tasks and note. Each task has task_id, title, column, status (`open`, `agent_working`, `needs_input`, `waiting_for_review`, `approved`, `done`), assignees (each with `name`: the task's assignee, or the brand's owners when nobody is assigned, as on the board), question (the agent's open question) or null, brief (up to 1,000 characters; null for a plain chat session), created_at, last_activity_at and open_url. Up to 50 tasks per call; older ones are on the board (`board_url`).
+Returns workspace_id (the brand when one brand is listed, otherwise null), brand_count (brands searched), brands (workspace_id, name of the brands in `tasks`), assignee (`name`, `email` of the person filtered by) or null, board_url, counts (open, waiting_for_feedback, ready_for_launch, done: full totals for the filters), tasks and note. Each task has task_id, workspace_id, brand, title, column, status (`open`, `agent_working`, `needs_input`, `waiting_for_review`, `approved`, `done`), assignees (each with `name`: the task's assignee, or the brand's owners when nobody is assigned, as on the board), question (the agent's open question) or null, brief (up to 1,000 characters; null for a plain chat session), created_at, last_activity_at and open_url. Up to 50 tasks per call; older ones are on the board (`board_url`). An `assignee` that matches nobody gives `assignee_not_found`; several people give `assignee_ambiguous`.
 
 ### `create_task`
 
